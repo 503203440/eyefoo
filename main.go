@@ -17,6 +17,17 @@ var assets embed.FS
 
 func main() {
 	configDir := getConfigDir()
+
+	locked, release, err := acquireSingleInstanceLock(configDir)
+	if err != nil {
+		println("Error:", err.Error())
+		os.Exit(1)
+	}
+	if !locked {
+		os.Exit(0)
+	}
+	defer release()
+
 	settingsStore, _ := NewSettingsStore(configDir)
 	statsStore, _ := NewStatsStore(configDir)
 	timerService := NewTimerService(settingsStore, statsStore)
@@ -101,7 +112,7 @@ func main() {
 	// send startup notification
 	notify("眼睛护士已启动", "护眼定时器已运行在菜单栏，每 "+strconv.Itoa(settingsStore.Get().WorkInterval)+" 分钟提醒休息")
 
-	err := app.Run()
+	err = app.Run()
 	if err != nil {
 		println("Error:", err.Error())
 		os.Exit(1)
