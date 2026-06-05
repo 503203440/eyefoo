@@ -3,8 +3,10 @@ package main
 import (
 	"embed"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
@@ -87,6 +89,9 @@ func main() {
 	// start timer on launch
 	timerService.Start()
 
+	// send startup notification
+	notify("眼睛护士已启动", "护眼定时器已运行在菜单栏，每 "+strconv.Itoa(settingsStore.Get().WorkInterval)+" 分钟提醒休息")
+
 	err := app.Run()
 	if err != nil {
 		println("Error:", err.Error())
@@ -102,4 +107,14 @@ func getConfigDir() string {
 	dir := filepath.Join(home, ".config", "eyefoo")
 	os.MkdirAll(dir, 0755)
 	return dir
+}
+
+func notify(title, message string) {
+	switch runtime.GOOS {
+	case "darwin":
+		script := `display notification "` + message + `" with title "` + title + `"`
+		exec.Command("osascript", "-e", script).Start()
+	default:
+		println(title + ": " + message)
+	}
 }
