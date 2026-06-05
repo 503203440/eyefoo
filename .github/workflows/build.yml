@@ -82,7 +82,7 @@ jobs:
         run: npm ci
         working-directory: frontend
 
-      - name: Build & Package (universal: arm64 + amd64)
+      - name: "Build & Package (universal: arm64 + amd64)"
         run: wails3 task darwin:package:universal
 
       - name: List build outputs
