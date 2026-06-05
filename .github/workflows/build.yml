@@ -40,14 +40,19 @@ jobs:
       - name: Build & Package
         run: wails3 package
 
+      - name: List build outputs
+        run: Get-ChildItem -Recurse bin/
+
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: eyefoo-windows-installer
-          path: build/windows/nsis/eyefoo-installer.exe
+          path: bin/eyefoo-amd64-installer.exe
+          if-no-files-found: warn
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: eyefoo-windows-exe
           path: bin/eyefoo.exe
+          if-no-files-found: warn
