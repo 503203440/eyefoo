@@ -1,59 +1,96 @@
-# Welcome to Your New Wails3 Project!
+# 眼睛护士 Eyefoo
 
-Congratulations on generating your Wails3 application! This README will guide you through the next steps to get your project up and running.
+基于 Wails v3 构建的跨平台护眼提醒软件，致敬经典的 eyefoo 眼睛护士。
 
-## Getting Started
+## 功能特性
 
-1. Navigate to your project directory in the terminal.
+| 功能 | 说明 |
+|------|------|
+| 系统托盘 | macOS 菜单栏图标，顶栏常驻，右键菜单操作 |
+| 定时提醒 | 工作 x 分钟后弹出全屏休息遮罩（默认 45 分钟） |
+| 强制休息 | 全屏暗色遮罩 + Always on Top + 倒计时 |
+| 眼保健操 | 休息时播放动画引导（上下/左右/对角/画圈转动眼球） |
+| 灵活设置 | 工作时长、休息时长、强制模式、声音开关，修改即时生效 |
+| 使用统计 | 每日工作时长、休息次数，保留近 7 天记录 |
+| 严格模式 | 开启后无法跳过休息，强制护眼 |
+| Focus 自动隐藏 | 设置窗口失焦自动收起，与 macOS 原生 popover 体验一致 |
 
-2. To run your application in development mode, use the following command:
+## 技术栈
 
-   ```
-   wails3 dev
-   ```
+| 层级 | 技术 |
+|------|------|
+| 框架 | [Wails v3](https://v3.wails.io/) (alpha.98) |
+| 后端 | Go 1.25+ |
+| 前端 | 原生 HTML / CSS / JavaScript (无框架) |
+| 构建工具 | Vite + Taskfile |
+| 平台 | macOS / Windows / Linux (当前主要适配 macOS) |
 
-   This will start your application and enable hot-reloading for both frontend and backend changes.
+## 环境要求
 
-3. To build your application for production, use:
+- **Go** ≥ 1.25
+- **Node.js** ≥ 18 (含 npm)
+- **Wails v3 CLI**:
+  ```bash
+  go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+  ```
+- **Xcode Command Line Tools** (仅 macOS)
 
-   ```
-   wails3 build
-   ```
+验证环境:
+```bash
+wails3 doctor
+```
 
-   This will create a production-ready executable in the `build` directory.
+## 项目结构
 
-## Exploring Wails3 Features
+```
+eyefoo/
+├── main.go              # 入口，系统托盘 + 窗口 + 事件注册
+├── settingsservice.go   # 设置 CRUD（JSON 持久化）
+├── timerservice.go      # 定时器引擎（工作/休息循环）
+├── statsservice.go      # 使用统计
+├── frontend/
+│   ├── index.html       # UI 主页面（设置页 + 休息遮罩 + 眼保健操）
+│   ├── src/main.js      # 前端逻辑（事件监听、UI 切换）
+│   ├── public/style.css # 深色主题样式
+│   └── bindings/        # 自动生成的 Go ↔ JS 绑定（勿手动编辑）
+├── build/               # 构建配置、图标、Info.plist 等
+├── Taskfile.yml         # 构建任务定义
+└── go.mod / go.sum      # Go 模块依赖
+```
 
-Now that you have your project set up, it's time to explore the features that Wails3 offers:
+## 快速开始
 
-1. **Check out the examples**: The best way to learn is by example. Visit the `examples` directory in the `v3/examples` directory to see various sample applications.
+```bash
+# 1. 克隆项目
+git clone https://github.com/503203440/eyefoo.git
+cd eyefoo
 
-2. **Run an example**: To run any of the examples, navigate to the example's directory and use:
+# 2. 安装前端依赖
+cd frontend && npm install && cd ..
 
-   ```
-   go run .
-   ```
+# 3. 开发模式（热重载）
+wails3 dev
 
-   Note: Some examples may be under development during the alpha phase.
+# 4. 生产构建 + 打包为 .app
+wails3 package
+# 产物在 bin/eyefoo.app
+```
 
-3. **Explore the documentation**: Visit the [Wails3 documentation](https://v3.wails.io/) for in-depth guides and API references.
+## 配置文件
 
-4. **Join the community**: Have questions or want to share your progress? Join the [Wails Discord](https://discord.gg/JDdSxwjhGf) or visit the [Wails discussions on GitHub](https://github.com/wailsapp/wails/discussions).
+设置和统计数据存储在 `~/.config/eyefoo/`:
 
-## Project Structure
+| 文件 | 内容 |
+|------|------|
+| `settings.json` | 工作时长、休息时长、严格模式、声音开关 |
+| `stats.json` | 每日工作时长、休息次数历史 |
 
-Take a moment to familiarize yourself with your project structure:
+## 自定义图标
 
-- `frontend/`: Contains your frontend code (HTML, CSS, JavaScript/TypeScript)
-- `main.go`: The entry point of your Go backend
-- `app.go`: Define your application structure and methods here
-- `wails.json`: Configuration file for your Wails project
+1. 准备一张 1024×1024 的 PNG 图片
+2. 替换 `build/appicon.png`
+3. 重新执行 `wails3 build && wails3 package`
 
-## Next Steps
+## License
 
-1. Modify the frontend in the `frontend/` directory to create your desired UI.
-2. Add backend functionality in `main.go`.
-3. Use `wails3 dev` to see your changes in real-time.
-4. When ready, build your application with `wails3 build`.
-
-Happy coding with Wails3! If you encounter any issues or have questions, don't hesitate to consult the documentation or reach out to the Wails community.
+MIT
