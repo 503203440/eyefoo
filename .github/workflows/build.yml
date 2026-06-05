@@ -6,6 +6,9 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+permissions:
+  contents: write  # 用于在 tag 触发时创建 GitHub Release
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -44,16 +47,27 @@ jobs:
       - name: List build outputs
         run: Get-ChildItem -Recurse bin/
 
-      - name: Upload installer
+      - name: Upload installer (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: eyefoo-windows-installer
           path: bin/eyefoo-amd64-installer.exe
           if-no-files-found: warn
 
-      - name: Upload binary
+      - name: Upload binary (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: eyefoo-windows-exe
           path: bin/eyefoo.exe
           if-no-files-found: warn
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            bin/eyefoo-amd64-installer.exe
+            bin/eyefoo.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
