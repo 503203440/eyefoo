@@ -1,0 +1,384 @@
+:root {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.9);
+    background: transparent;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    place-items: center;
+    place-content: center;
+    min-height: 100vh;
+    background: rgb(30, 30, 30);
+    overflow: hidden;
+}
+
+body.break-mode {
+    background: rgb(0, 0, 0);
+}
+
+#app {
+    width: 100%;
+    min-height: 100vh;
+}
+
+/* ---- Settings View ---- */
+#settings-view {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.timer-card {
+    text-align: center;
+    width: 100%;
+}
+
+.timer-icon {
+    font-size: 40px;
+    margin-bottom: 4px;
+}
+
+.timer-phase {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 10px;
+}
+
+.timer-time {
+    font-size: 48px;
+    font-weight: 200;
+    letter-spacing: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.timer-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: -4px;
+    margin-bottom: 6px;
+}
+
+.timer-progress {
+    width: 200px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    margin: 8px auto;
+    overflow: hidden;
+}
+
+.timer-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4facfe, #00f2fe);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+.timer-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+/* ---- Buttons ---- */
+.btn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: #000;
+}
+
+.btn-primary:hover {
+    opacity: 0.85;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-skip-break {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.6);
+    padding: 10px 30px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 20px;
+}
+
+.btn-skip-break:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* ---- Tabs ---- */
+.tabs {
+    display: flex;
+    width: 100%;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 8px;
+}
+
+.tab {
+    flex: 1;
+    padding: 10px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tab.active {
+    color: rgba(255, 255, 255, 0.9);
+    border-bottom-color: #4facfe;
+}
+
+.tab-content {
+    display: none;
+    width: 100%;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* ---- Settings items ---- */
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.setting-item label {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.setting-item input[type="number"] {
+    width: 70px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font-size: 14px;
+    text-align: center;
+    outline: none;
+}
+
+.setting-item input[type="number"]:focus {
+    border-color: #4facfe;
+}
+
+/* ---- Toggle switch ---- */
+.toggle-item {
+    padding: 12px 0;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+    transition: 0.3s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.switch input:checked + .slider {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+}
+
+.switch input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+/* ---- Today work ---- */
+.today-work {
+    text-align: center;
+    padding: 16px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+}
+
+.today-work span {
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+/* ---- Stats ---- */
+#stats-list {
+    padding-top: 10px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 13px;
+}
+
+.stat-date {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.stat-work {
+    color: #4facfe;
+}
+
+.stat-break {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ---- Break Overlay ---- */
+#break-view {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #000;
+}
+
+.break-content {
+    text-align: center;
+}
+
+.break-title {
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 16px;
+}
+
+.break-countdown {
+    font-size: 96px;
+    font-weight: 100;
+    letter-spacing: 4px;
+    color: #4facfe;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 40px rgba(79, 172, 254, 0.3);
+}
+
+.break-subtitle {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 8px;
+}
+
+/* ---- Eye Exercise ---- */
+.eye-exercise-container {
+    margin-top: 40px;
+}
+
+.eye-exercise-label {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.35);
+    margin-bottom: 12px;
+}
+
+.eye-exercise-box {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    position: relative;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.eye-dot {
+    width: 24px;
+    height: 24px;
+    background: radial-gradient(circle, #4facfe, #00f2fe);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 20px rgba(79, 172, 254, 0.5);
+}
+
+.eye-instruction {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 12px;
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}

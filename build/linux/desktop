@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=眼睛护士 Eyefoo
+Comment=护眼提醒软件 - Eye protection reminder
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/eyefoo %u
+Terminal=false
+Type=Application
+Icon=eyefoo
+Categories=Utility;
+StartupWMClass=eyefoo
+
+ 

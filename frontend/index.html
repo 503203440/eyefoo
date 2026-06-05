@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="/style.css"/>
+    <title>眼睛护士 Eyefoo</title>
+</head>
+<body>
+
+<div id="app">
+    <!-- Settings view -->
+    <div id="settings-view" class="view">
+
+        <!-- Timer status -->
+        <div class="timer-card">
+            <div class="timer-icon" id="timer-icon">&#x1f441;</div>
+            <div class="timer-phase" id="timer-phase">准备开始</div>
+            <div class="timer-progress">
+                <div class="timer-bar" id="timer-bar"></div>
+            </div>
+            <div class="timer-time" id="timer-time">00:00</div>
+            <div class="timer-label" id="timer-label">/ 45:00</div>
+            <div class="timer-controls">
+                <button class="btn btn-primary" id="btn-toggle" onclick="toggleTimer()">开始计时</button>
+                <button class="btn btn-secondary" id="btn-skip" onclick="skipBreak()" style="display:none">跳过休息</button>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="settings" onclick="switchTab('settings')">设置</button>
+            <button class="tab" data-tab="stats" onclick="switchTab('stats')">统计</button>
+        </div>
+
+        <!-- Settings tab -->
+        <div id="tab-settings" class="tab-content active">
+            <div class="setting-item">
+                <label>工作时长（分钟）</label>
+                <input type="number" id="set-work" min="1" max="180" value="45" onchange="saveSettings()"/>
+            </div>
+            <div class="setting-item">
+                <label>休息时长（分钟）</label>
+                <input type="number" id="set-break" min="1" max="30" value="5" onchange="saveSettings()"/>
+            </div>
+            <div class="setting-item toggle-item">
+                <label>强制休息模式</label>
+                <label class="switch">
+                    <input type="checkbox" id="set-strict" onchange="saveSettings()"/>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="setting-item toggle-item">
+                <label>声音提醒</label>
+                <label class="switch">
+                    <input type="checkbox" id="set-sound" checked onchange="saveSettings()"/>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="today-work">
+                今日累计工作：<span id="today-work-time">0 分钟</span>
+            </div>
+        </div>
+
+        <!-- Stats tab -->
+        <div id="tab-stats" class="tab-content">
+            <div id="stats-list"></div>
+        </div>
+    </div>
+
+    <!-- Break overlay -->
+    <div id="break-view" class="view" style="display:none">
+        <div class="break-content">
+            <div class="break-title">&#x1f441; 休息时间</div>
+            <div class="break-countdown" id="break-countdown">05:00</div>
+            <div class="break-subtitle">请离开屏幕，看看远方</div>
+
+            <!-- Eye exercise -->
+            <div class="eye-exercise-container">
+                <div class="eye-exercise-label">眼保健操引导</div>
+                <div class="eye-exercise-box">
+                    <div class="eye-dot" id="eye-dot"></div>
+                </div>
+                <div class="eye-instruction" id="eye-instruction">上下转动眼球</div>
+            </div>
+
+            <button class="btn btn-skip-break" id="btn-skip-break" onclick="skipBreak()">跳过休息</button>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

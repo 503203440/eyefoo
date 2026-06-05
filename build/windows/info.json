@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "1.0.0"
+	},
+	"info": {
+		"0000": {
+			"ProductVersion": "1.0.0",
+			"CompanyName": "Eyefoo",
+			"FileDescription": "护眼提醒软件 - Eye protection reminder",
+			"LegalCopyright": "© 2026, My Company",
+			"ProductName": "眼睛护士 Eyefoo",
+			"Comments": "This is a comment"
+		}
+	}
+}
