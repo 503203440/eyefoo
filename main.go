@@ -34,7 +34,6 @@ func main() {
 
 	// apply saved display settings
 	initSettings := settingsStore.Get()
-	ApplyDisplayBrightness(initSettings.DimLevel)
 	ApplyColorTemperature(initSettings.WarmLevel)
 
 	app := application.New(application.Options{

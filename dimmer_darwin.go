@@ -4,29 +4,9 @@ package main
 
 /*
 #cgo CFLAGS: -mmacosx-version-min=10.13 -x objective-c
-#cgo LDFLAGS: -framework IOKit -framework CoreGraphics -mmacosx-version-min=10.13
+#cgo LDFLAGS: -framework CoreGraphics -mmacosx-version-min=10.13
 
-#import <IOKit/IOKitLib.h>
-#import <IOKit/graphics/IOGraphicsLib.h>
 #import <CoreGraphics/CoreGraphics.h>
-
-void eyefooSetBrightness(int level) {
-    float brightness = (float)level / 100.0f;
-    if (brightness < 0.0f) brightness = 0.0f;
-    if (brightness > 1.0f) brightness = 1.0f;
-
-    io_iterator_t iterator;
-    if (IOServiceGetMatchingServices(kIOMasterPortDefault, IOServiceMatching("IODisplayConnect"), &iterator) != KERN_SUCCESS) {
-        return;
-    }
-
-    io_service_t service;
-    while ((service = IOIteratorNext(iterator)) != 0) {
-        IODisplaySetFloatParameter(service, kNilOptions, CFSTR("IODisplayBrightness"), brightness);
-        IOObjectRelease(service);
-    }
-    IOObjectRelease(iterator);
-}
 
 #define GAMMA_DISPLAYS 4
 #define GAMMA_SAMPLES 256
@@ -92,20 +72,9 @@ void eyefooResetDisplay(void) {
         }
     }
     g_saved_count = 0;
-    eyefooSetBrightness(100);
 }
 */
 import "C"
-
-func ApplyDisplayBrightness(level int) {
-	if level < 0 {
-		level = 0
-	}
-	if level > 100 {
-		level = 100
-	}
-	C.eyefooSetBrightness(C.int(level))
-}
 
 func ApplyColorTemperature(warmth int) {
 	if warmth < 0 {

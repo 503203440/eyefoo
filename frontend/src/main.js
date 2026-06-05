@@ -23,9 +23,7 @@ const setWorkEl = document.getElementById('set-work');
 const setBreakEl = document.getElementById('set-break');
 const setStrictEl = document.getElementById('set-strict');
 const setSoundEl = document.getElementById('set-sound');
-const setDimEl = document.getElementById('set-dim');
 const setWarmEl = document.getElementById('set-warm');
-const dimValueEl = document.getElementById('dim-value');
 const warmValueEl = document.getElementById('warm-value');
 
 // ---- State ----
@@ -47,7 +45,6 @@ window.toggleTimer = toggleTimer;
 window.skipBreak = skipBreak;
 window.switchTab = switchTab;
 window.saveSettings = saveSettings;
-window.updateDimDisplay = updateDimDisplay;
 window.updateWarmDisplay = updateWarmDisplay;
 
 async function toggleTimer() {
@@ -76,17 +73,12 @@ async function saveSettings() {
             break_duration: parseInt(setBreakEl.value) || 5,
             strict_mode: setStrictEl.checked,
             sound_enabled: setSoundEl.checked,
-            dim_level: parseInt(setDimEl.value) || 100,
             warm_level: parseInt(setWarmEl.value) || 0,
         });
         await TimerService.RefreshGoals();
     } catch (e) {
         console.error(e);
     }
-}
-
-function updateDimDisplay() {
-    dimValueEl.textContent = setDimEl.value + '%';
 }
 
 function updateWarmDisplay() {
@@ -271,9 +263,7 @@ Events.On('settings:loaded', (evt) => {
     setBreakEl.value = s.break_duration;
     setStrictEl.checked = s.strict_mode;
     setSoundEl.checked = s.sound_enabled;
-    setDimEl.value = s.dim_level;
     setWarmEl.value = s.warm_level;
-    dimValueEl.textContent = s.dim_level + '%';
     warmValueEl.textContent = s.warm_level + '%';
     currentStrict = s.strict_mode;
 });
@@ -291,9 +281,7 @@ async function init() {
         setBreakEl.value = settings.break_duration;
         setStrictEl.checked = settings.strict_mode;
         setSoundEl.checked = settings.sound_enabled;
-        setDimEl.value = settings.dim_level;
         setWarmEl.value = settings.warm_level;
-        dimValueEl.textContent = settings.dim_level + '%';
         warmValueEl.textContent = settings.warm_level + '%';
         currentStrict = settings.strict_mode;
 

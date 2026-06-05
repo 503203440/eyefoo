@@ -89,13 +89,6 @@ export class Settings {
              */
             this["sound_enabled"] = false;
         }
-        if (!("dim_level" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["dim_level"] = 0;
-        }
         if (!("warm_level" in $$source)) {
             /**
              * @member
