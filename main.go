@@ -32,6 +32,11 @@ func main() {
 	statsStore, _ := NewStatsStore(configDir)
 	timerService := NewTimerService(settingsStore, statsStore)
 
+	// apply saved display settings
+	initSettings := settingsStore.Get()
+	ApplyDisplayBrightness(initSettings.DimLevel)
+	ApplyColorTemperature(initSettings.WarmLevel)
+
 	app := application.New(application.Options{
 		Name:        "eyefoo",
 		Description: "眼睛护士 - Eye protection reminder",
@@ -72,7 +77,7 @@ func main() {
 	settingsWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:   "眼睛护士 Eyefoo",
 		Width:   420,
-		Height:  580,
+		Height:  680,
 		Hidden:  true,
 		Frameless: true,
 		Mac: application.MacWindow{
@@ -112,6 +117,7 @@ func main() {
 	// send startup notification
 	notify("眼睛护士已启动", "护眼定时器已运行在菜单栏，每 "+strconv.Itoa(settingsStore.Get().WorkInterval)+" 分钟提醒休息")
 
+	defer ResetDisplaySettings()
 	err = app.Run()
 	if err != nil {
 		println("Error:", err.Error())

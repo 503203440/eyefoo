@@ -12,6 +12,8 @@ type Settings struct {
 	BreakDuration int  `json:"break_duration"`
 	StrictMode    bool `json:"strict_mode"`
 	SoundEnabled  bool `json:"sound_enabled"`
+	DimLevel      int  `json:"dim_level"`
+	WarmLevel     int  `json:"warm_level"`
 }
 
 var defaultSettings = Settings{
@@ -19,6 +21,8 @@ var defaultSettings = Settings{
 	BreakDuration: 5,
 	StrictMode:    false,
 	SoundEnabled:  true,
+	DimLevel:      100,
+	WarmLevel:     0,
 }
 
 type SettingsStore struct {
@@ -33,7 +37,7 @@ func NewSettingsStore(configDir string) (*SettingsStore, error) {
 		settings: defaultSettings,
 	}
 
-	data, err := os.ReadFile(s.path)
+		data, err := os.ReadFile(s.path)
 	if err == nil {
 		var loaded Settings
 		if json.Unmarshal(data, &loaded) == nil {
@@ -45,6 +49,12 @@ func NewSettingsStore(configDir string) (*SettingsStore, error) {
 			}
 			s.settings.StrictMode = loaded.StrictMode
 			s.settings.SoundEnabled = loaded.SoundEnabled
+			if loaded.DimLevel >= 0 && loaded.DimLevel <= 100 {
+				s.settings.DimLevel = loaded.DimLevel
+			}
+			if loaded.WarmLevel >= 0 && loaded.WarmLevel <= 100 {
+				s.settings.WarmLevel = loaded.WarmLevel
+			}
 		}
 	}
 
@@ -70,12 +80,31 @@ func (s *SettingsStore) SaveSettings(st Settings) error {
 	if st.BreakDuration > 30 {
 		st.BreakDuration = 30
 	}
+	if st.DimLevel < 0 {
+		st.DimLevel = 0
+	}
+	if st.DimLevel > 100 {
+		st.DimLevel = 100
+	}
+	if st.WarmLevel < 0 {
+		st.WarmLevel = 0
+	}
+	if st.WarmLevel > 100 {
+		st.WarmLevel = 100
+	}
 
 	s.mu.Lock()
 	s.settings = st
 	s.mu.Unlock()
 
-	return s.save()
+	err := s.save()
+	if err != nil {
+		return err
+	}
+
+	ApplyDisplayBrightness(st.DimLevel)
+	ApplyColorTemperature(st.WarmLevel)
+	return nil
 }
 
 func (s *SettingsStore) save() error {
