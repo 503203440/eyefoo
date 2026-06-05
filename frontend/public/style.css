@@ -144,6 +144,17 @@ body.break-mode {
     color: rgba(255, 255, 255, 0.8);
 }
 
+.btn:disabled,
+.btn[disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.btn:disabled:hover,
+.btn[disabled]:hover {
+    opacity: 0.5;
+}
+
 /* ---- Tabs ---- */
 .tabs {
     display: flex;

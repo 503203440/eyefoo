@@ -117,6 +117,7 @@ export const TimerPhase = {
     TimerIdle: 0,
     TimerWorking: 1,
     TimerBreak: 2,
+    TimerWaiting: 3,
 };
 
 export class TimerState {

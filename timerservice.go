@@ -14,6 +14,7 @@ const (
 	TimerIdle    TimerPhase = 0
 	TimerWorking TimerPhase = 1
 	TimerBreak   TimerPhase = 2
+	TimerWaiting TimerPhase = 3
 )
 
 type TimerState struct {
@@ -39,7 +40,12 @@ type TimerService struct {
 	workGoal  int
 	breakGoal int
 
-	cancel context.CancelFunc
+	cancel       context.CancelFunc
+	waitCancel   context.CancelFunc
+	waitingSince time.Time
+
+	phaseStart time.Time
+	pausedAt   time.Time
 }
 
 func NewTimerService(settings *SettingsStore, stats *StatsStore) *TimerService {
@@ -55,6 +61,22 @@ func NewTimerService(settings *SettingsStore, stats *StatsStore) *TimerService {
 func (t *TimerService) setWindow(w application.Window, app *application.App) {
 	t.window = w
 	t.app = app
+}
+
+// lockFullscreenChrome disables the window's fullscreen (zoom) button while
+// a break is running so the user has no way to dismiss the mask via the
+// macOS title bar controls.
+func (t *TimerService) lockFullscreenChrome(locked bool) {
+	if t.window == nil {
+		return
+	}
+	if locked {
+		t.window.SetFullscreenButtonState(application.ButtonDisabled)
+		t.window.SetMaximiseButtonState(application.ButtonDisabled)
+	} else {
+		t.window.SetFullscreenButtonState(application.ButtonEnabled)
+		t.window.SetMaximiseButtonState(application.ButtonEnabled)
+	}
 }
 
 func (t *TimerService) ShowSettings() {
@@ -73,14 +95,28 @@ func (t *TimerService) Toggle() {
 	phase := t.phase
 	t.mu.Unlock()
 
-	if phase == TimerIdle {
+	switch phase {
+	case TimerIdle:
 		t.Start()
-	} else {
+	case TimerWaiting:
+		t.ForceResumeWork()
+	default:
 		t.PauseResume()
 	}
 }
 
 func (t *TimerService) Start() {
+	t.mu.Lock()
+	if t.phase != TimerIdle {
+		t.mu.Unlock()
+		return
+	}
+	t.mu.Unlock()
+
+	if err := StartActivityTap(); err != nil {
+		println("activity tap unavailable, falling back to legacy behavior:", err.Error())
+	}
+
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -92,6 +128,8 @@ func (t *TimerService) Start() {
 	t.phase = TimerWorking
 	t.elapsed = 0
 	t.paused = false
+	t.phaseStart = time.Now()
+	t.pausedAt = time.Time{}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.cancel = cancel
@@ -101,15 +139,26 @@ func (t *TimerService) Start() {
 
 func (t *TimerService) Stop() {
 	t.mu.Lock()
-	defer t.mu.Unlock()
-
 	if t.cancel != nil {
 		t.cancel()
 		t.cancel = nil
 	}
+	if t.waitCancel != nil {
+		t.waitCancel()
+		t.waitCancel = nil
+	}
 	t.phase = TimerIdle
 	t.elapsed = 0
 	t.paused = false
+	t.waitingSince = time.Time{}
+	t.phaseStart = time.Time{}
+	t.pausedAt = time.Time{}
+	t.mu.Unlock()
+	StopActivityTap()
+	ExitKiosk()
+	if t.window != nil {
+		t.lockFullscreenChrome(false)
+	}
 	t.emit()
 }
 
@@ -131,7 +180,14 @@ func (t *TimerService) RefreshGoals() {
 func (t *TimerService) PauseResume() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.paused = !t.paused
+	if t.paused {
+		t.phaseStart = t.phaseStart.Add(time.Since(t.pausedAt))
+		t.paused = false
+		t.pausedAt = time.Time{}
+	} else {
+		t.pausedAt = time.Now()
+		t.paused = true
+	}
 	t.emit()
 }
 
@@ -144,18 +200,25 @@ func (t *TimerService) SkipBreak() string {
 	if settings.StrictMode {
 		return "strict_mode_enabled"
 	}
-	if phase != TimerBreak {
+	if phase != TimerBreak && phase != TimerWaiting {
 		return "not_in_break"
 	}
 
 	t.mu.Lock()
-	if t.cancel != nil {
+	if phase == TimerBreak && t.cancel != nil {
 		t.cancel()
+	}
+	if phase == TimerWaiting && t.waitCancel != nil {
+		t.waitCancel()
+		t.waitCancel = nil
 	}
 	t.updateGoals()
 	t.phase = TimerWorking
 	t.elapsed = 0
 	t.paused = false
+	t.waitingSince = time.Time{}
+	t.phaseStart = time.Now()
+	t.pausedAt = time.Time{}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.cancel = cancel
@@ -163,13 +226,52 @@ func (t *TimerService) SkipBreak() string {
 	t.emit()
 	t.mu.Unlock()
 
+	ExitKiosk()
 	if t.window != nil {
 		t.window.UnFullscreen()
 		t.window.SetAlwaysOnTop(false)
 		t.window.Hide()
+		t.lockFullscreenChrome(false)
+	}
+
+	if t.app != nil {
+		t.app.Event.Emit("timer:phase", "work")
 	}
 
 	return "ok"
+}
+
+// ForceResumeWork starts the work phase immediately, ignoring the
+// activity-wait gate. Used by Toggle() while in TimerWaiting.
+func (t *TimerService) ForceResumeWork() {
+	t.mu.Lock()
+	if t.phase != TimerWaiting {
+		t.mu.Unlock()
+		return
+	}
+	if t.waitCancel != nil {
+		t.waitCancel()
+		t.waitCancel = nil
+	}
+	t.updateGoals()
+	t.phase = TimerWorking
+	t.elapsed = 0
+	t.paused = false
+	t.waitingSince = time.Time{}
+	t.phaseStart = time.Now()
+	t.pausedAt = time.Time{}
+	t.mu.Unlock()
+
+	if t.app != nil {
+		t.app.Event.Emit("timer:phase", "work")
+	}
+	t.emit()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.mu.Lock()
+	t.cancel = cancel
+	t.mu.Unlock()
+	go t.loop(ctx)
 }
 
 func (t *TimerService) GetState() TimerState {
@@ -183,6 +285,9 @@ func (t *TimerService) lockedState() TimerState {
 	total := t.workGoal
 	if t.phase == TimerBreak {
 		total = t.breakGoal
+	}
+	if t.phase == TimerWaiting {
+		total = t.workGoal
 	}
 	return TimerState{
 		Phase:     t.phase,
@@ -207,7 +312,7 @@ func (t *TimerService) emit() {
 }
 
 func (t *TimerService) loop(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
 
 	for {
@@ -216,18 +321,29 @@ func (t *TimerService) loop(ctx context.Context) {
 			return
 		case <-ticker.C:
 			t.mu.Lock()
+			if t.phase != TimerWorking && t.phase != TimerBreak {
+				t.mu.Unlock()
+				continue
+			}
 			if t.paused {
 				t.mu.Unlock()
 				continue
 			}
 
-			t.elapsed++
+			newElapsed := int(time.Since(t.phaseStart).Seconds())
+			if newElapsed == t.elapsed {
+				t.mu.Unlock()
+				continue
+			}
+			prev := t.elapsed
+			t.elapsed = newElapsed
+			t.workTotal += newElapsed - prev
 
 			if t.phase == TimerWorking {
-				t.workTotal++
-				if t.elapsed >= t.workGoal {
+				if newElapsed >= t.workGoal {
 					t.phase = TimerBreak
 					t.elapsed = 0
+					t.phaseStart = time.Now()
 					t.mu.Unlock()
 
 					if t.app != nil {
@@ -238,33 +354,109 @@ func (t *TimerService) loop(ctx context.Context) {
 						t.window.Show()
 						t.window.SetAlwaysOnTop(true)
 						t.window.Fullscreen()
+						t.lockFullscreenChrome(true)
 					}
+					EnterKiosk()
 					_ = t.stats.AddBreak(1)
 					continue
 				}
 				t.emit()
+				t.mu.Unlock()
 			} else if t.phase == TimerBreak {
-				t.workTotal++
-				if t.elapsed >= t.breakGoal {
-					t.updateGoals()
-					t.phase = TimerWorking
+				if newElapsed >= t.breakGoal {
+					_ = t.stats.AddWork(t.workGoal)
+					if !IsActivityTapEnabled() {
+						t.phase = TimerWorking
+						t.elapsed = 0
+						t.phaseStart = time.Now()
+						t.mu.Unlock()
+
+						ExitKiosk()
+						if t.app != nil {
+							t.app.Event.Emit("timer:phase", "work")
+						}
+						if t.window != nil {
+							t.window.UnFullscreen()
+							t.window.SetAlwaysOnTop(false)
+							t.window.Hide()
+							t.lockFullscreenChrome(false)
+						}
+						continue
+					}
+
+					t.phase = TimerWaiting
 					t.elapsed = 0
+					t.phaseStart = time.Time{}
+					t.waitingSince = time.Now()
+					waitCtx, waitCancel := context.WithCancel(context.Background())
+					t.waitCancel = waitCancel
 					t.mu.Unlock()
 
+					ExitKiosk()
 					if t.app != nil {
-						t.app.Event.Emit("timer:phase", "work")
+						t.app.Event.Emit("timer:phase", "waiting")
 					}
 					if t.window != nil {
 						t.window.UnFullscreen()
 						t.window.SetAlwaysOnTop(false)
 						t.window.Hide()
+						t.lockFullscreenChrome(false)
 					}
-					_ = t.stats.AddWork(t.workGoal)
+					notify("休息结束", "请敲一下键盘或移动鼠标开始工作")
+					go t.waitLoop(waitCtx)
 					continue
 				}
 				t.emit()
+				t.mu.Unlock()
+			} else {
+				t.mu.Unlock()
 			}
+		}
+	}
+}
+
+// waitLoop polls LastActivity() once per second. As soon as user activity
+// is detected after waitingSince, it transitions the timer into the
+// working phase.
+func (t *TimerService) waitLoop(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			t.mu.Lock()
+			if t.phase != TimerWaiting || t.paused {
+				t.mu.Unlock()
+				return
+			}
+			if !LastActivity().After(t.waitingSince) {
+				t.mu.Unlock()
+				continue
+			}
+			t.updateGoals()
+			t.phase = TimerWorking
+			t.elapsed = 0
+			t.paused = false
+			t.waitingSince = time.Time{}
+			t.phaseStart = time.Now()
+			t.pausedAt = time.Time{}
+			t.waitCancel = nil
 			t.mu.Unlock()
+
+			if t.app != nil {
+				t.app.Event.Emit("timer:phase", "work")
+			}
+			t.emit()
+
+			loopCtx, cancel := context.WithCancel(context.Background())
+			t.mu.Lock()
+			t.cancel = cancel
+			t.mu.Unlock()
+			go t.loop(loopCtx)
+			return
 		}
 	}
 }

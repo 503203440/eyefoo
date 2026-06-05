@@ -3,7 +3,6 @@ package main
 import (
 	"embed"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -66,8 +65,9 @@ func main() {
 		Hidden:  true,
 		Frameless: true,
 		Mac: application.MacWindow{
-			TitleBar: application.MacTitleBarHiddenInset,
-			Backdrop: application.MacBackdropTranslucent,
+			TitleBar:                application.MacTitleBarHiddenInset,
+			Backdrop:                application.MacBackdropTranslucent,
+			DisableEscapeExitsFullscreen: true,
 		},
 		BackgroundColour: application.NewRGB(30, 30, 30),
 		URL:              "/",
@@ -78,8 +78,17 @@ func main() {
 	})
 	settingsWindow.RegisterHook(events.Common.WindowLostFocus, func(e *application.WindowEvent) {
 		state := timerService.GetState()
-		if state.Phase != 2 {
+		if state.Phase != 2 && state.Phase != 3 {
 			settingsWindow.Hide()
+		}
+	})
+	// Backup safety net: if anything ever does cause the window to drop out of
+	// fullscreen while a break is still running, re-enter fullscreen right away.
+	// Primary defence is kiosk mode (NSApp.presentationOptions) entered in
+	// timerservice.go when the break starts.
+	settingsWindow.RegisterHook(events.Mac.WindowDidExitFullScreen, func(e *application.WindowEvent) {
+		if timerService.GetState().Phase == 2 {
+			settingsWindow.Fullscreen()
 		}
 	})
 
@@ -110,11 +119,5 @@ func getConfigDir() string {
 }
 
 func notify(title, message string) {
-	switch runtime.GOOS {
-	case "darwin":
-		script := `display notification "` + message + `" with title "` + title + `"`
-		exec.Command("osascript", "-e", script).Start()
-	default:
-		println(title + ": " + message)
-	}
+	platformNotify(title, message)
 }

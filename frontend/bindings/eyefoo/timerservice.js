@@ -11,6 +11,15 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as $models from "./models.js";
 
 /**
+ * ForceResumeWork starts the work phase immediately, ignoring the
+ * activity-wait gate. Used by Toggle() while in TimerWaiting.
+ * @returns {$CancellablePromise<void>}
+ */
+export function ForceResumeWork() {
+    return $Call.ByID(3101350957);
+}
+
+/**
  * @returns {$CancellablePromise<$models.TimerState>}
  */
 export function GetState() {

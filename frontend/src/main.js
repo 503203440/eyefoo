@@ -111,17 +111,32 @@ function updateTimerUI(state) {
         timerPhaseEl.textContent = '已暂停';
         timerIconEl.innerHTML = '&#x23f8;';
         btnToggle.textContent = '开始计时';
+        btnToggle.disabled = false;
         btnSkip.style.display = 'none';
+        btnSkip.textContent = '跳过休息';
     } else if (state.phase === 1) { // working
         timerPhaseEl.textContent = state.paused ? '已暂停' : '工作中...';
         timerIconEl.innerHTML = state.paused ? '&#x23f8;' : '&#x1f4bb;';
         btnToggle.textContent = state.paused ? '继续' : '暂停';
+        btnToggle.disabled = false;
         btnSkip.style.display = 'none';
+        btnSkip.textContent = '跳过休息';
     } else if (state.phase === 2) { // break
         timerPhaseEl.textContent = '休息中...';
         timerIconEl.innerHTML = '&#x1f441;';
         btnToggle.textContent = '暂停';
+        btnToggle.disabled = false;
         btnSkip.style.display = currentStrict ? 'none' : 'inline-block';
+        btnSkip.textContent = '跳过休息';
+    } else if (state.phase === 3) { // waiting
+        timerPhaseEl.textContent = '请敲键盘 / 移动鼠标开始工作';
+        timerIconEl.innerHTML = '&#x1f4a4;';
+        timerTimeEl.textContent = '00:00';
+        timerBarEl.style.width = '0%';
+        btnToggle.textContent = '等待中...';
+        btnToggle.disabled = true;
+        btnSkip.style.display = currentStrict ? 'none' : 'inline-block';
+        btnSkip.textContent = '开始工作';
     }
 }
 
@@ -228,6 +243,8 @@ Events.On('timer:phase', (evt) => {
         showBreakView();
     } else if (phase === 'work') {
         showSettingsView();
+    } else if (phase === 'waiting') {
+        showSettingsView();
     }
 });
 
@@ -261,6 +278,9 @@ async function init() {
             showBreakView();
         } else {
             showSettingsView();
+        }
+        if (state.phase === 3) {
+            btnToggle.disabled = true;
         }
 
         todayWorkEl.textContent = Math.round(stats.work_secs / 60) + ' 分钟';
