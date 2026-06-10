@@ -44,8 +44,9 @@ type TimerService struct {
 	waitCancel   context.CancelFunc
 	waitingSince time.Time
 
-	phaseStart time.Time
-	pausedAt   time.Time
+	phaseStart     time.Time
+	pausedAt       time.Time
+	overlayWindows []application.Window
 }
 
 func NewTimerService(settings *SettingsStore, stats *StatsStore) *TimerService {
@@ -156,6 +157,7 @@ func (t *TimerService) Stop() {
 	t.mu.Unlock()
 	StopActivityTap()
 	ExitKiosk()
+	t.closeOverlays()
 	if t.window != nil {
 		t.lockFullscreenChrome(false)
 	}
@@ -227,6 +229,7 @@ func (t *TimerService) SkipBreak() string {
 	t.mu.Unlock()
 
 	ExitKiosk()
+	t.closeOverlays()
 	if t.window != nil {
 		t.window.UnFullscreen()
 		t.window.SetAlwaysOnTop(false)
@@ -356,6 +359,7 @@ func (t *TimerService) loop(ctx context.Context) {
 						t.window.Fullscreen()
 						t.lockFullscreenChrome(true)
 					}
+					t.showOverlays()
 					EnterKiosk()
 					_ = t.stats.AddBreak(1)
 					continue
@@ -372,6 +376,7 @@ func (t *TimerService) loop(ctx context.Context) {
 						t.mu.Unlock()
 
 						ExitKiosk()
+						t.closeOverlays()
 						if t.app != nil {
 							t.app.Event.Emit("timer:phase", "work")
 						}
@@ -393,6 +398,7 @@ func (t *TimerService) loop(ctx context.Context) {
 					t.mu.Unlock()
 
 					ExitKiosk()
+					t.closeOverlays()
 					if t.app != nil {
 						t.app.Event.Emit("timer:phase", "waiting")
 					}
@@ -458,5 +464,68 @@ func (t *TimerService) waitLoop(ctx context.Context) {
 			go t.loop(loopCtx)
 			return
 		}
+	}
+}
+
+func (t *TimerService) showOverlays() {
+	if t.app == nil || t.window == nil {
+		return
+	}
+
+	screens := t.app.Screen.GetAll()
+	if len(screens) <= 1 {
+		return
+	}
+
+	mainScreen, err := t.window.GetScreen()
+	if err != nil || mainScreen == nil {
+		mainScreen = t.app.Screen.GetPrimary()
+	}
+
+	var overlays []application.Window
+	for _, s := range screens {
+		if mainScreen != nil && s.ID == mainScreen.ID {
+			continue
+		}
+
+		w := t.app.Window.NewWithOptions(application.WebviewWindowOptions{
+			Title:            "眼睛护士 Eyefoo",
+			Frameless:        true,
+			AlwaysOnTop:      true,
+			BackgroundColour: application.NewRGB(30, 30, 30),
+			URL:              "/",
+			Screen:           s,
+			Mac: application.MacWindow{
+				TitleBar:                     application.MacTitleBarHiddenInset,
+				Backdrop:                     application.MacBackdropTranslucent,
+				DisableEscapeExitsFullscreen: true,
+			},
+		})
+		w.UnMinimise()
+		w.Show()
+		w.SetAlwaysOnTop(true)
+		w.Fullscreen()
+
+		overlays = append(overlays, w)
+	}
+
+	t.mu.Lock()
+	oldOverlays := t.overlayWindows
+	t.overlayWindows = overlays
+	t.mu.Unlock()
+
+	for _, w := range oldOverlays {
+		w.Close()
+	}
+}
+
+func (t *TimerService) closeOverlays() {
+	t.mu.Lock()
+	overlays := t.overlayWindows
+	t.overlayWindows = nil
+	t.mu.Unlock()
+
+	for _, w := range overlays {
+		w.Close()
 	}
 }
